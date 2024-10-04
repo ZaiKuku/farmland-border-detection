@@ -11,6 +11,7 @@ from borderdetection.loss import calculate_metrics
 
 
 def main():
+    mlflow.set_experiment("border-detection")
     mlflow.set_tracking_uri("http://192.168.1.104:5000")
 
     with mlflow.start_run():
@@ -19,7 +20,7 @@ def main():
         mlflow.log_param("param1", 5)
         detect()
 
-        f1scores = []
+        foms = []
         pred_gray_nps = os.listdir("./pred_gray/preds")
         for pred_gray_np in pred_gray_nps:
             if pred_gray_np.endswith(".npy"):
@@ -30,9 +31,9 @@ def main():
                     path, thres=26, combined=True, rmv_overlap=True, ans=False, file_num=np_num)
 
                 geojson2tif(np_num)
-                f1scores.append(calculate_metrics(np_num))
+                foms.append(calculate_metrics(np_num))
 
-        mlflow.log_metric("F1 Score", sum(f1scores) / len(f1scores))
+        mlflow.log_metric("FOM", sum(foms) / len(foms))
 
 
 if __name__ == "__main__":
