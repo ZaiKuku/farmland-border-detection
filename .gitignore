@@ -1,0 +1,6 @@
+*.geojson
+*.tif
+*.npy
+*.png
+__pycache__
+*.png.aux.xml
