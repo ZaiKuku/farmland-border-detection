@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+from scipy.ndimage import distance_transform_edt
 
 
 def dice_loss(pred, target, smooth=1e-6):
@@ -101,6 +102,33 @@ def calculate_metrics(number):
     loss = f1score(pred, gt)
 
     return loss
+
+
+def fom(self, ref_img, img, alpha=1.0 / 9):
+    """
+    Computes Pratt's Figure of Merit for the given image img, using a gold
+    standard image as source of the ideal edge pixels.
+    """
+
+    # Compute the distance transform for the gold standard image.
+    dist = distance_transform_edt(np.invert(ref_img))
+
+    fom = 1.0 / np.maximum(
+        np.count_nonzero(img),
+        np.count_nonzero(ref_img))
+
+    N, M = img.shape
+
+    for i in range(N):
+        for j in range(M):
+            if img[i, j]:
+                fom += 1.0 / (1.0 + dist[i, j] * dist[i, j] * alpha)
+
+    fom /= np.maximum(
+        np.count_nonzero(img),
+        np.count_nonzero(ref_img))
+
+    return fom
 
 
 if __name__ == "__main__":
