@@ -64,7 +64,7 @@ def f1score(pred, target):
 
 
 def calculate_metrics(number):
-    gt_path = f"../data/crop_delineation/masks/{number}.png"
+    gt_path = f"../data/lyon_2m/{number}_ans.png"
     pred_path = f"./validation/{number}.tif"
 
     print("Loading ground truth and prediction images...")
@@ -99,12 +99,12 @@ def calculate_metrics(number):
 
     # 計算 Dice Loss
 
-    loss = f1score(pred, gt)
+    loss = fom(gt, pred)
 
     return loss
 
 
-def fom(self, ref_img, img, alpha=1.0 / 9):
+def fom(ref_img, img, alpha=1.0 / 9):
     """
     Computes Pratt's Figure of Merit for the given image img, using a gold
     standard image as source of the ideal edge pixels.

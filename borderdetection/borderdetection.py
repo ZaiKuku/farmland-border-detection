@@ -2,8 +2,8 @@ import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from loss import dice_loss, MAE, zero_one_loss
-from process_method import apply_gaussian_blur, generate_superpixels, crop_and_magnify
+from borderdetection.loss import dice_loss, MAE, zero_one_loss, fom
+from borderdetection.process_method import apply_gaussian_blur, generate_superpixels, crop_and_magnify
 
 params = {
     'sigmaX': 5,
@@ -68,13 +68,15 @@ def normalize_brightness(image, target_brightness=30):
 
 def detect():
     # 設置路徑
-    images = os.listdir("../data/crop_delineation/imgs")
+    images = os.listdir("../data/lyon_2m")
 
     losses = []
-    goodcases = 0
     # start to preprocess images
     for image in images:
-        image_path = os.path.join("../data/crop_delineation/imgs", image)
+        if not image.endswith(".png") or image.endswith("_ans.png"):
+            continue
+        print(image)
+        image_path = os.path.join("../data/lyon_2m", image)
         image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 
         if image is None:
@@ -91,25 +93,7 @@ def detect():
         # postprocess image
         postprocessed_image = postprocess_image(pred)
 
-        # loss calculation
-        gt_path = os.path.join(
-            "../data/crop_delineation/masks", os.path.basename(image_path).split(".")[0] + ".png")
-        gt = cv2.imread(gt_path, cv2.IMREAD_GRAYSCALE)
-
-        # 檢查圖像是否成功讀取
-        if gt is None:
-            print(gt_path + " not found.")
-            continue
-
         # 檢查圖像大小是否相同
-
-        if postprocessed_image.shape != gt.shape:
-            raise ValueError(
-                "Ground truth and prediction images must have the same dimensions." + str(postprocessed_image.shape) + str(gt.shape))
-
-        loss = zero_one_loss(postprocessed_image, gt)
-        # print(f"Loss: {loss}")
-        losses.append(loss)
 
         postprocessed_image = normalize_brightness(postprocessed_image)
 

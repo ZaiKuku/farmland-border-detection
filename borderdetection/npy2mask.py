@@ -16,7 +16,7 @@ def npy2mask(file_num, ans):
 
     # 匯入 .tif （主要是從裡面拿輸出結果的地理資訊 metadata, 再把這些地理資訊 metadata apply 到 numpy matrix 上，使之能輸出為 .tif 檔案）
     gray_da = rioxarray.open_rasterio(
-        f"./tifs/{folder}/{file_num}.tif")
+        f"../data/lyon_2m/{file_num}.tif")
     # crs: 地理座標系統
     gray_crs = gray_da.rio.crs
     gray_x_coords = gray_da.x

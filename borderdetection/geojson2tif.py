@@ -6,12 +6,12 @@ import numpy as np
 
 def geojson2tif(number):
     polygons = gpd.read_file(
-        f"./geojson/preds/{number}_threshold_26_combined_True_3857.geojson")
+        f"./geojson/preds/{number}_threshold_26_filtered_True_3857.geojson")
 
     # 將 polygon 轉為 linestring
     multi_strings = polygons['geometry'].boundary
 
-    template_raster_filepath = f"./tifs/answers/{number}.tif"
+    template_raster_filepath = f"../data/lyon_2m/{number}_ans.tif"
 
     # Step 2: Open the raster (TIF file) using rasterio and extract metadata
     with rasterio.open(template_raster_filepath) as src:
