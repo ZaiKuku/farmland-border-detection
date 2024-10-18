@@ -53,8 +53,17 @@ def postprocess_image(image):
     return image
 
 
-def normalize_brightness(image, target_brightness=30):
+def normalize_brightness(image, normalize='rescale', target_brightness=30):
+    if normalize == 'rescale':
+        return rescale(image, target_brightness)
+    elif normalize == 'standardize':
+        return standardize(image)
+    elif normalize == 'translate':
+        return translate(image, target_brightness)
 
+
+def rescale(image, target_brightness=30):
+    # rescale
     mean_brightness = np.mean(image)
 
     brightness_factor = target_brightness / mean_brightness
@@ -66,7 +75,32 @@ def normalize_brightness(image, target_brightness=30):
     return normalized_image
 
 
-def detect():
+def standardize(image):
+    # standardize
+    mean_brightness = np.mean(image)
+    std_brightness = np.std(image)
+
+    normalized_image = (image - mean_brightness) / std_brightness
+
+    normalized_image = np.clip(normalized_image, 0, 255).astype(np.uint8)
+
+    return normalized_image
+
+
+def translate(image, target_brightness=30):
+    # translate
+    mean_brightness = np.mean(image)
+
+    brightness_factor = target_brightness - mean_brightness
+
+    normalized_image = image + brightness_factor
+
+    normalized_image = np.clip(normalized_image, 0, 255).astype(np.uint8)
+
+    return normalized_image
+
+
+def detect(normalize='rescale'):
     # 設置路徑
     images = os.listdir("../data/lyon_2m")
 
@@ -75,7 +109,7 @@ def detect():
     for image in images:
         if not image.endswith(".png") or image.endswith("_ans.png"):
             continue
-        print(image)
+
         image_path = os.path.join("../data/lyon_2m", image)
         image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 
@@ -95,28 +129,14 @@ def detect():
 
         # 檢查圖像大小是否相同
 
-        postprocessed_image = normalize_brightness(postprocessed_image)
+        postprocessed_image = normalize_brightness(
+            postprocessed_image, normalize)
 
         # save the result as npy
         np.save(
             f"./pred_gray/preds/{os.path.basename(image_path).split('.')[0]}.npy", postprocessed_image)
         cv2.imwrite(
             f"./pred_gray/preds/{os.path.basename(image_path).split('.')[0]}.png", postprocessed_image)
-
-        # if loss < 0.4:
-        #     goodcases += 1
-        #     cv2.imshow("Processed Image", postprocessed_image)
-        #     cv2.imshow("Ground Truth", gt)
-        #     cv2.imshow("Original Image", image)
-        #     # lines = cv2.HoughLinesP(
-        #     #     postprocessed_image, 1, np.pi / 180, 100, minLineLength=100, maxLineGap=10)
-        #     # cv2.imshow("Hough Lines", cv2.convertScaleAbs(lines))
-        #     cv2.waitKey(3000)
-        #     cv2.destroyAllWindows()
-
-    avg_loss = np.mean(losses)
-    # print(f"Good cases: {goodcases}")
-    print(f"Average Dice Loss: {avg_loss}")
 
 
 if __name__ == "__main__":
@@ -143,25 +163,6 @@ if __name__ == "__main__":
 
         # postprocess image
         postprocessed_image = postprocess_image(pred)
-
-        # gt_path = os.path.join(
-        #     "../data/crop_delineation/masks", os.path.basename(image_path).split(".")[0] + ".png")
-        # gt = cv2.imread(gt_path, cv2.IMREAD_GRAYSCALE)
-
-        # # 檢查圖像是否成功讀取
-        # if gt is None:
-        #     print(gt_path + " not found.")
-        #     continue
-
-        # # 檢查圖像大小是否相同
-
-        # if postprocessed_image.shape != gt.shape:
-        #     raise ValueError(
-        #         "Ground truth and prediction images must have the same dimensions." + str(postprocessed_image.shape) + str(gt.shape))
-
-        # loss = zero_one_loss(postprocessed_image, gt)
-        # # print(f"Loss: {loss}")
-        # losses.append(loss)
 
         cv2.imshow("Original Image", postprocessed_image)
         cv2.waitKey(3000)

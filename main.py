@@ -1,5 +1,5 @@
 import os
-import sys
+import numpy as np
 
 import mlflow
 
@@ -10,7 +10,7 @@ from borderdetection.geojson2tif import geojson2tif
 from borderdetection.loss import calculate_metrics
 
 
-def main():
+def main(threshold=12, combined=True, normalize='rescale'):
     mlflow.set_tracking_uri("http://192.168.1.104:5000")
     mlflow.set_experiment("border-detection")
 
@@ -18,30 +18,45 @@ def main():
 
         # detect edges
         mlflow.log_param('sigmaX', 5)
-        mlflow.log_param('post_binary_threshold', 60)
 
         mlflow.log_param('pre_kernel_size', (3, 3))
         mlflow.log_param('post_kernel_size', (3, 3))
-        mlflow.log_param('canny_threshold', (10, 200))
-        mlflow.log_param('threshold', 26)
+        mlflow.log_param('threshold', threshold)
+        mlflow.log_param('combined', combined)
+        mlflow.log_param('Normalize', normalize)
 
-        detect()
-
-        foms = []
+        # detect()
+        print("Border detection completed.")
+        loss = []
         pred_gray_nps = os.listdir("./pred_gray/preds")
         for pred_gray_np in pred_gray_nps:
             if pred_gray_np.endswith(".npy"):
                 np_num = pred_gray_np.split(".")[0]
-                npy2mask(np_num, False)
-                path = f"./gray_mask/preds/threshold_26.tif"
+
+                npy2mask(np_num, False, threshold)
+                path = f"./gray_mask/preds/threshold_{threshold}.tif"
+
                 mask2geojson(
-                    path, thres=26, combined=False, rmv_overlap=True, ans=False, file_num=np_num)
+                    path, thres=threshold, combined=combined, rmv_overlap=True, ans=False, file_num=np_num)
 
-                geojson2tif(np_num)
-                foms.append(calculate_metrics(np_num))
+                geojson2tif(np_num, threshold=threshold, filtered='combined')
+                calculated_loss = calculate_metrics(np_num)
 
-        mlflow.log_metric("FOM", sum(foms) / len(foms))
+                loss.append(calculated_loss)
+
+        loss_np = np.array(loss)
+
+        mlflow.log_metric("FOM", loss_np[:, 0].mean())
+        mlflow.log_metric("RMSE", loss_np[:, 1].mean())
+        mlflow.log_metric("PSNR", loss_np[:, 2].mean())
 
 
 if __name__ == "__main__":
-    main()
+    combined = True
+    normalize = 'rescale'  # 'rescale' or 'standardize' or 'translate'
+    # main(12, combined, normalize)
+    for i in range(12, 30, 2):
+        print(f"Sarting threshold {i}")
+        main(i)
+        print(f"Threshold {i} completed.")
+        print("--------------------------------------------------")

@@ -5,9 +5,10 @@ import pandas as pd
 from shapely.geometry import shape, Polygon
 from shapely import concave_hull, union_all
 import numpy as np
+import sys
+import time
 
-thres = 20
-file_num = "tile_0"
+thres = 16
 combined = True
 rmv_overlap = True
 ans = False
@@ -15,7 +16,7 @@ path = f"./gray_mask/preds/threshold_{thres}.tif"
 # mode = "filtered"
 
 
-def find_polygons_in_distance(polygons, distance=0.0005):
+def find_polygons_in_distance(polygons, distance=0.005):
     # in_range = []
     # for polygon in polygons:
     #     if target == polygon:
@@ -51,6 +52,7 @@ def find_polygons_in_distance(polygons, distance=0.0005):
 
 
 def remove_overlapping(polygons):
+    start = time.time()
     n = len(polygons)  # 獲取 GeoDataFrame 的行數
 
     row_indices = np.repeat(np.arange(n), n)
@@ -78,25 +80,48 @@ def remove_overlapping(polygons):
         if i not in output_dict.keys():
             output_polygons.append(polygons[i])
         else:
-            try:
-                for j in output_dict[i]:
-                    if polygons[i].contains(polygons[j]):
-                        polygons[j] = Polygon()
-                        output_dict.pop(j)
-                    elif polygons[j].contains(polygons[i]):
-                        polygons[i] = Polygon()
-                        output_dict.pop(i)
-                        break
-                    elif polygons[i].area > polygons[j].area:
-                        polygons[j] = polygons[j].difference(polygons[i])
-                    else:
-                        polygons[i] = polygons[i].difference(polygons[j])
-            except:
-                print(f'Error at {i} and {j}')
-                continue
+            for j in output_dict[i]:
+                if polygons[i].contains(polygons[j]):
+                    polygons[j] = Polygon()
+                    output_dict.pop(j)
+                elif polygons[j].contains(polygons[i]):
+                    polygons[i] = Polygon()
+                    output_dict.pop(i)
+                    break
+                elif polygons[i].area > polygons[j].area:
+                    polygons[j] = polygons[j].difference(polygons[i])
+                else:
+                    polygons[i] = polygons[i].difference(polygons[j])
             output_polygons.append(polygons[i])
 
     output_polygons = [p for p in output_polygons if not p.is_empty]
+
+    # for i in range(len(polygons)):
+    #     if polygons[i].is_empty or polygons[i] == Polygon():
+    #         continue
+    #     for j in range(i+1, len(polygons)):
+    #         try:
+    #             intersect = polygons[i].intersects(polygons[j])
+    #         except:
+    #             print("error", i, j)
+    #             continue
+    #         if intersect:
+    #             if polygons[i].contains(polygons[j]):
+    #                 polygons[j] = Polygon()
+    #             elif polygons[j].contains(polygons[i]):
+    #                 polygons[i] = Polygon()
+    #                 break
+    #             else:
+    #                 if polygons[i].area > polygons[j].area:
+    #                     polygons[j] = polygons[j].difference(polygons[i])
+    #                     # print("remove overlap")
+    #                 else:
+    #                     polygons[i] = polygons[i].difference(polygons[j])
+    #                     # print("remove overlap")
+    # output_polygons = [p for p in polygons if not p.is_empty]
+
+    end = time.time()
+    print("time", end-start)
     return output_polygons
 
 
@@ -105,15 +130,21 @@ def find_convex_hull(polygons, distance):
     in_range = find_polygons_in_distance(polygons, distance)
     for key, value in in_range.items():
         union = union_all([polygons[key]] + [polygons[v] for v in value])
+        # print(f"{key} union with {value} polygons")
         convex_hull = union.convex_hull
         convex_hulls.append(convex_hull)
+
+    print(len(convex_hulls))
 
     for i in range(len(polygons)):
         if i not in in_range.keys():
             convex_hulls.append(polygons[i])
 
+    print(len(convex_hulls))
+
     if rmv_overlap:
         convex_hulls = remove_overlapping(convex_hulls)
+    print(len(convex_hulls))
     return convex_hulls
 
 
@@ -138,7 +169,7 @@ def find_concave_hull(polygons, distance):
         polygons.remove(polygon)
 
 
-def mask2geojson(path, thres, combined, rmv_overlap, ans, file_num):
+def mask2geojson(path, thres, combined, rmv_overlap, ans):
     mode = "combined" if combined else "filtered"
     folder = "answers" if ans else "preds"
     # 讀取 raster 文件
@@ -153,7 +184,6 @@ def mask2geojson(path, thres, combined, rmv_overlap, ans, file_num):
     # remove small polygons
     polygons = [p for p in polygons if p.area >= 60]
 
-    print("Start find convex hull")
     if combined:
         polygons = find_convex_hull(polygons, 0.0005)
 
@@ -169,10 +199,9 @@ def mask2geojson(path, thres, combined, rmv_overlap, ans, file_num):
 
     # 過濾掉 geometry 為空之 rows
     th_4_disagg_sf_filtered = th_4_disagg_sf[~th_4_disagg_sf.is_empty]
-    th_4_disagg_sf_filtered = th_4_disagg_sf[th_4_disagg_sf_filtered.area >= 1000]
+
     # 創建凸包 (convexhull) (或凹包(concavehull))
     th_4_disagg_sf_list = []
-
     for idx, row in th_4_disagg_sf_filtered.iterrows():
         if not row.geometry.is_empty:
             # 使用 convex_hull
@@ -189,23 +218,15 @@ def mask2geojson(path, thres, combined, rmv_overlap, ans, file_num):
     # 合併結果
     result = pd.concat(th_4_disagg_sf_list)
 
-    if not ans:
-        # 保存為 GeoJSON
-        # 19772_threshold_26_combined_True_3857
-        result.to_file(f"./geojson/{folder}/{file_num}_threshold_{thres}_{mode}_{rmv_overlap}_3857.geojson",
-                       driver='GeoJSON')
-
-        # 將 EPSG:3857 之 geo-dataframe 的座標系統轉回 EPSG:4326 (經緯度)
-        result_4326 = result.to_crs(4326)
-        result_4326.to_file(
-            f"./geojson/{folder}/{file_num}_threshold_{thres}_{mode}_{rmv_overlap}_4326.geojson", driver='GeoJSON')
-    else:
-        result.to_file(f"./geojson/{folder}/{file_num}_answer.geojson",
-                       driver='GeoJSON')
+    # if not ans:
+    #     # 保存為 GeoJSON
+    #     # 19772_threshold_26_combined_True_3857
+    #     result.to_file("test_overlapping_rrr555.geojson", driver="GeoJSON")
 
     print("To GeoJSON success")
 
 
 if __name__ == "__main__":
-    mask2geojson(
-        f"./gray_mask/2m_preds/threshold_{thres}.tif", thres, combined, rmv_overlap, ans, file_num)
+    # mask2geojson(
+    #     f"./gray_mask/preds/threshold_{thres}.tif", thres, combined, rmv_overlap, ans)
+    print(sys.executable)

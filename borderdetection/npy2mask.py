@@ -7,7 +7,7 @@ file_num = 37259
 ans = False
 
 
-def npy2mask(file_num, ans):
+def npy2mask(file_num, ans, threshold):
     folder = "answers" if ans else "preds"
     # 匯入邊緣檢測結果
     gray_np_array = np.load(
@@ -25,7 +25,7 @@ def npy2mask(file_num, ans):
     gray_transform = gray_da.rio.transform()
 
     if not ans:
-        i = 26
+        i = threshold
         # for i in range(gray_np_array.min(), 150, 2):
         # 比較每個元素是否超過 threshold i, 並將結果從 boolean (True, False) 轉為 int (1, 0)
         ind_mat = (gray_np_array >= i).astype(np.uint8)
@@ -48,6 +48,8 @@ def npy2mask(file_num, ans):
         gray_da.rio.write_transform(gray_transform, inplace=True)
 
         gray_da.rio.to_raster(f"./gray_mask/{folder}/{file_num}.tif")
+
+    print(f"No.{file_num}, {threshold} threshold mask saved.")
 
 
 if __name__ == '__main__':

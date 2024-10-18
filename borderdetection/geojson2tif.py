@@ -4,9 +4,9 @@ from rasterio.features import rasterize
 import numpy as np
 
 
-def geojson2tif(number):
+def geojson2tif(number, threshold, filtered):
     polygons = gpd.read_file(
-        f"./geojson/preds/{number}_threshold_26_filtered_True_3857.geojson")
+        f"./geojson/preds/{number}_threshold_{threshold}_{filtered}_True_3857.geojson")
 
     # 將 polygon 轉為 linestring
     multi_strings = polygons['geometry'].boundary

@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
+from PIL import Image
 from scipy.ndimage import distance_transform_edt
+from sewar.full_ref import rmse, psnr, uqi
 
 
 def dice_loss(pred, target, smooth=1e-6):
@@ -53,11 +55,11 @@ def f1score(pred, target):
     pred = pred.flatten()
     target = target.flatten()
     tp = np.sum(pred * target)
-    print(tp)
+
     fp = np.sum(pred * (1 - target))
-    print(fp)
+
     fn = np.sum((1 - pred) * target)
-    print(fn)
+
     precision = tp / (tp + fp)
     recall = tp / (tp + fn)
     return 2 * precision * recall / (precision + recall)
@@ -74,13 +76,14 @@ def calculate_metrics(number):
     gt = cv2.imread(gt_path, cv2.IMREAD_GRAYSCALE)
     pred = cv2.imread(pred_path, cv2.IMREAD_GRAYSCALE)
 
+    _, gt = cv2.threshold(gt, 1, 1, cv2.THRESH_BINARY)
     # 檢查圖像是否成功讀取
 
     if gt is None:
-        raise FileNotFoundError("Ground truth image not found.")
+        raise FileNotFoundError(f"Ground truth image {gt_path} not found.")
 
     if pred is None:
-        raise FileNotFoundError("Prediction image not found.")
+        raise FileNotFoundError(f"Prediction image {pred_path} not found.")
 
     # 檢查圖像大小是否相同
 
@@ -99,7 +102,7 @@ def calculate_metrics(number):
 
     # 計算 Dice Loss
 
-    loss = fom(gt, pred)
+    loss = [fom(gt, pred), rmse(gt, pred), psnr(gt, pred)]
 
     return loss
 
