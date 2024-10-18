@@ -14,14 +14,13 @@ params = {
 }
 
 
-def preprocess_image(image):
+def preprocess_image(image, kernel_size=(3, 3), sigmaX=5):
     # Convert the original image to grayscale
 
     # labels, image = generate_superpixels(image)
 
     # 應用高斯模糊
-    image = apply_gaussian_blur(
-        image, kernel_size=params['pre_kernel_size'], sigmaX=params['sigmaX'])
+    image = apply_gaussian_blur(image, kernel_size=kernel_size, sigmaX=sigmaX)
 
     # crop into 4 quadrants
     # image = crop_and_magnify(image, crop=False, magnify_=False, scale=2)
@@ -41,12 +40,11 @@ def detect_edges(processed_image, method):
     return pred
 
 
-def postprocess_image(image):
+def postprocess_image(image, kernel_size=(3, 3), sigmaX=5):
 
     # 應用高斯模糊
     image = apply_gaussian_blur(
-        image, kernel_size=params['post_kernel_size'], sigmaX=params['sigmaX'])
-
+        image, kernel_size=kernel_size, sigmaX=sigmaX)
     # _, image = cv2.threshold(
     #     image, params['post_binary_threshold'], 255, cv2.THRESH_BINARY)
 
@@ -100,7 +98,7 @@ def translate(image, target_brightness=30):
     return normalized_image
 
 
-def detect(normalize='rescale'):
+def detect(normalize='rescale', sigmaX=5, pre_kernel_size=(3, 3), post_kernel_size=(3, 3)):
     # 設置路徑
     images = os.listdir("../data/lyon_2m")
 
@@ -118,14 +116,16 @@ def detect(normalize='rescale'):
             continue
 
         # preprocess image
-        processed_image = preprocess_image(image)
+        processed_image = preprocess_image(
+            image, kernel_size=pre_kernel_size, sigmaX=sigmaX)
 
         # detect edges
         # ['canny', 'marr_hildreth']
         pred = detect_edges(processed_image, method='marr_hildreth')
 
         # postprocess image
-        postprocessed_image = postprocess_image(pred)
+        postprocessed_image = postprocess_image(
+            pred, kernel_size=post_kernel_size, sigmaX=sigmaX)
 
         # 檢查圖像大小是否相同
 

@@ -187,23 +187,24 @@ def mask2geojson(path, thres, combined, rmv_overlap, ans, file_num):
                 continue
 
     # 合併結果
-    result = pd.concat(th_4_disagg_sf_list)
+    if len(th_4_disagg_sf_list) > 0:
+        result = pd.concat(th_4_disagg_sf_list)
 
-    if not ans:
-        # 保存為 GeoJSON
-        # 19772_threshold_26_combined_True_3857
-        result.to_file(f"./geojson/{folder}/{file_num}_threshold_{thres}_{mode}_{rmv_overlap}_3857.geojson",
-                       driver='GeoJSON')
+        if not ans:
+            # 保存為 GeoJSON
+            # 19772_threshold_26_combined_True_3857
+            result.to_file(f"./geojson/{folder}/{file_num}_threshold_{thres}_{mode}_{rmv_overlap}_3857.geojson",
+                           driver='GeoJSON')
 
-        # 將 EPSG:3857 之 geo-dataframe 的座標系統轉回 EPSG:4326 (經緯度)
-        result_4326 = result.to_crs(4326)
-        result_4326.to_file(
-            f"./geojson/{folder}/{file_num}_threshold_{thres}_{mode}_{rmv_overlap}_4326.geojson", driver='GeoJSON')
-    else:
-        result.to_file(f"./geojson/{folder}/{file_num}_answer.geojson",
-                       driver='GeoJSON')
+            # 將 EPSG:3857 之 geo-dataframe 的座標系統轉回 EPSG:4326 (經緯度)
+            result_4326 = result.to_crs(4326)
+            result_4326.to_file(
+                f"./geojson/{folder}/{file_num}_threshold_{thres}_{mode}_{rmv_overlap}_4326.geojson", driver='GeoJSON')
+        else:
+            result.to_file(f"./geojson/{folder}/{file_num}_answer.geojson",
+                           driver='GeoJSON')
 
-    print("To GeoJSON success")
+        print("To GeoJSON success")
 
 
 if __name__ == "__main__":
