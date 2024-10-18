@@ -5,8 +5,11 @@ import numpy as np
 
 
 def geojson2tif(number, threshold, filtered):
-    polygons = gpd.read_file(
-        f"./geojson/preds/{number}_threshold_{threshold}_{filtered}_True_3857.geojson")
+    try:
+        polygons = gpd.read_file(
+            f"./geojson/preds/{number}_threshold_{threshold}_{filtered}_True_3857.geojson")
+    except:
+        return
 
     # 將 polygon 轉為 linestring
     multi_strings = polygons['geometry'].boundary
