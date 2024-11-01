@@ -15,6 +15,13 @@ tif_path = '../data/lyon_2m/1310.tif'
 tif2_path = '../data/lyon_2m/1311.tif'
 
 
+def get_right_and_bottom_tif(tif_num):
+
+    # dict ={tif_num:{right: right_tif_num, bottom: bottom_tif_num}}
+    # return f'../data/lyon_2m/{right_tif_num}.tif', f'../data/lyon_2m/{bottom_tif_num}.tif'
+    return f'../data/lyon_2m/{tif_num}.tif', f'../data/lyon_2m/{tif_num+1}.tif'
+
+
 def get_bounds(tif_path):
     with rasterio.open(tif_path) as src:
         bounds = src.bounds
@@ -49,84 +56,49 @@ def filter_polygons_on_edge(polygons, edge):
 
 
 def merge_polygons(polygons1, polygons2):
-    merged = []
+    merged = gpd.GeoDataFrame()
     for idx, poly1 in polygons1.iterrows():
         for idx2, poly2 in polygons2.iterrows():
             if poly1.geometry.intersects(poly2.geometry):
                 shared = poly1.geometry.intersection(poly2.geometry)
-                if isinstance(shared, (Polygon, MultiPolygon)):
-                    merged.append(shared)
-    return gpd.GeoDataFrame(merged, crs=polygons1.crs)
+                if isinstance(shared, (LineString, MultiLineString)):
+                    multipolygon = unary_union(
+                        [poly1.geometry, poly2.geometry])
+                    merged = pd.concat([merged, gpd.GeoDataFrame(
+                        {'geometry': [multipolygon]}, crs=polygons1.crs)])
+
+    return merged
 
 
-with rasterio.open(tif_path) as src:
-    bounds = src.bounds
+def merge_polygons_on_edge(geo_tif_num):
+    tif_path = f'../data/lyon_2m/{geo_tif_num}.tif'
 
-    crs = src.crs
+    tif_right_path, tif_bottom_path = get_right_and_bottom_tif(geo_tif_num)
 
-    west_line = LineString([
-        (bounds.left, bounds.bottom),
-        (bounds.left, bounds.top)
-    ])
-
-    east_line = LineString([
-        (bounds.right, bounds.bottom),
-        (bounds.right, bounds.top)
-    ])
-
-    south_line = LineString([
-        (bounds.left, bounds.bottom),
-        (bounds.right, bounds.bottom)
-    ])
-
-    north_line = LineString([
-        (bounds.left, bounds.top),
-        (bounds.right, bounds.top)
-    ])
-
-    edges = gpd.GeoDataFrame({
-        'side': ['West', 'East', 'South', 'North'],
-        'geometry': [west_line, east_line, south_line, north_line]
-    }, crs=crs)
-
-    for idx, row in edges.iterrows():
-        print(f"{row['side']} 邊界座標: {list(row['geometry'].coords)}")
-
-    # 視覺化
-    fig, ax = plt.subplots(figsize=(8, 8))
-
-    # 繪製光柵圖像
-    image = reshape_as_image(src.read())
-    ax.imshow(image)
+    edges = get_bounds(tif_path)
+    east_line = edges[edges.side == 'East'].geometry.values[0]
+    south_line = edges[edges.side == 'South'].geometry.values[0]
 
     polygons = gpd.read_file(
-        f"./geojson/preds/1310_threshold_26_combined_True_3857.geojson")
+        f'./geojson/preds/{geo_tif_num}_threshold_26_filtered_True_3857.geojson')
 
-    polygons2 = gpd.read_file(
-        f"./geojson/preds/1311_threshold_26_combined_True_3857.geojson")
+    polygons_right = gpd.read_file(tif_right_path)
+    polygons_bottom = gpd.read_file(tif_bottom_path)
 
-    # 偵測共邊
-    shared_edges = []
-    for idx, poly in polygons.iterrows():
-        for idx2, poly2 in polygons2.iterrows():
-            if poly.geometry.intersects(poly2.geometry):
-                shared_edges.append((idx, idx2))
+    polygons_east = filter_polygons_on_edge(polygons, east_line)
+    polygons_south = filter_polygons_on_edge(polygons, south_line)
 
-    for pair in shared_edges:
-        print(f"Polygon {pair[0]+1} 與 {pair[1]+1} 共享邊界")
+    polygons_right = filter_polygons_on_edge(polygons_right, east_line)
+    polygons_bottom = filter_polygons_on_edge(polygons_bottom, south_line)
 
-    # 合併共享邊界polygons
-    shared_polygons = gpd.GeoDataFrame()
+    merged = merge_polygons(polygons_east, polygons_right)
+    merged.concat(merge_polygons(polygons_south, polygons_bottom))
 
-    for pair in shared_edges:
-        poly1 = polygons.iloc[pair[0]].geometry
-        poly2 = polygons2.iloc[pair[1]].geometry
-        shared = poly1.intersection(poly2)
-        if isinstance(shared, (LineString, MultiLineString)):
-            multipolygon = unary_union([poly1, poly2])
-            shared_polygons = pd.concat([shared_polygons, gpd.GeoDataFrame(
-                {'geometry': [multipolygon]}, crs=polygons.crs)])
+    merged.to_file(
+        f"test.geojson",
+        driver='GeoJSON')
 
-    # save the result as GeoJSON
-    shared_polygons.to_file(
-        f"shared_polygons.geojson", driver='GeoJSON')
+
+if __name__ == '__main__':
+    merge_polygons_on_edge(1310)
+    print("Done")

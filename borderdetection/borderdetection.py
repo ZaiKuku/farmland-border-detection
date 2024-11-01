@@ -73,12 +73,14 @@ def rescale(image, target_brightness=30):
     return normalized_image
 
 
-def standardize(image):
+def standardize(image, target_brightness=30):
     # standardize
     mean_brightness = np.mean(image)
     std_brightness = np.std(image)
 
     normalized_image = (image - mean_brightness) / std_brightness
+
+    normalized_image = normalized_image * target_brightness + mean_brightness
 
     normalized_image = np.clip(normalized_image, 0, 255).astype(np.uint8)
 
@@ -105,7 +107,7 @@ def detect(normalize='rescale', sigmaX=5, pre_kernel_size=(3, 3), post_kernel_si
     losses = []
     # start to preprocess images
     for image in images:
-        if not image.endswith(".png") or image.endswith("_ans.png"):
+        if not image.endswith(".tif") or image.endswith("_ans.tif"):
             continue
 
         image_path = os.path.join("../data/lyon_2m", image)
@@ -131,6 +133,10 @@ def detect(normalize='rescale', sigmaX=5, pre_kernel_size=(3, 3), post_kernel_si
 
         postprocessed_image = normalize_brightness(
             postprocessed_image, normalize)
+
+        # 補中間檔的路徑
+        # if not os.path.exists("./pred_gray/preds"):
+        #     os.makedirs("./pred_gray/preds")
 
         # save the result as npy
         np.save(

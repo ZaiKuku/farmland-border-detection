@@ -155,7 +155,7 @@ def mask2geojson(path, thres, combined, rmv_overlap, ans, file_num):
 
     print("Start find convex hull")
     if combined:
-        polygons = find_convex_hull(polygons, 0.0005)
+        polygons = find_convex_hull(polygons, 0.0000005)
 
     # 創建 GeoDataFrame
     th_4_sf = gpd.GeoDataFrame({'geometry': polygons}, crs=src.crs)
