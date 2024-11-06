@@ -18,7 +18,7 @@ def main(threshold=12, combined=True, normalize='rescale', sigmaX=5, pre_kernel_
 
         # detect edges
         mlflow.log_param('sigmaX', sigmaX)
-
+        mlflow.log_param('combined', combined)
         mlflow.log_param('pre_kernel_size', (pre_kernel_size, pre_kernel_size))
         mlflow.log_param('post_kernel_size',
                          (post_kernel_size, post_kernel_size))
@@ -32,6 +32,17 @@ def main(threshold=12, combined=True, normalize='rescale', sigmaX=5, pre_kernel_
         for pred_gray_np in pred_gray_nps:
             if pred_gray_np.endswith(".npy"):
                 np_num = pred_gray_np.split(".")[0]
+                print(f"Processing {np_num}")
+                if np_num not in [
+                    "3374", "3473", "302", "3490", "348", "104", "92", "3457",
+                    "19", "616", "3305", "198", "3738", "3361", "256", "3245",
+                    "3756", "1847", "3246", "3271", "3386", "3250",
+                    "105", "179", "3681", "202", "67", "237", "3267", "229",
+                    "134", "260", "185", "1640", "3674", "1610", "3196",
+                    "113", "3302", "196", "23", "264", "3704", "3359",
+                    "306", "122"
+                ]:
+                    continue
 
                 npy2mask(np_num, False, threshold)
                 path = f"./gray_mask/preds/threshold_{threshold}.tif"
@@ -39,7 +50,8 @@ def main(threshold=12, combined=True, normalize='rescale', sigmaX=5, pre_kernel_
                 mask2geojson(
                     path, thres=threshold, combined=combined, rmv_overlap=True, ans=False, file_num=np_num)
 
-                geojson2tif(np_num, threshold=threshold, filtered='combined')
+                filtered = 'combined' if combined else 'filtered'
+                geojson2tif(np_num, threshold=threshold, filtered=filtered)
                 loss = calculate_metrics(np_num)
                 mlflow.log_metric("FOM", loss[0], step=int(np_num))
                 mlflow.log_metric("RMSE", loss[1], step=int(np_num))
@@ -47,12 +59,26 @@ def main(threshold=12, combined=True, normalize='rescale', sigmaX=5, pre_kernel_
 
 
 if __name__ == "__main__":
-    for threshold in range(12, 32, 2):
-        for normalize in ['rescale', 'standardize', 'translate']:
-            for kernel_size in range(3, 8, 2):
-                print(f"Starting threshold {threshold}, normalize {
-                      normalize}, kernel size {kernel_size}")
-                main(threshold=threshold, combined=True, normalize=normalize,
-                     pre_kernel_size=kernel_size, post_kernel_size=kernel_size)
-                print(f"Threshold {threshold} completed.")
-                print("--------------------------------------------------")
+    ########################################################################################
+    # multiple runs
+    # for threshold in range(8, 12, 2):
+    #     for normalize in ['standardize', 'rescale', 'translate']:
+    #         for kernel_size in range(3, 8, 2):
+    #             print(f"Starting threshold {threshold}, normalize {
+    #                 normalize}, kernel size {kernel_size}")
+    #             main(threshold=threshold, combined=True, normalize=normalize,
+    #                  pre_kernel_size=kernel_size, post_kernel_size=kernel_size)
+    #             print(f"Threshold {threshold} completed.")
+    #             print("--------------------------------------------------")
+
+    ########################################################################################
+    # single run
+    threshold = 16
+    combined = True
+    normalize = 'translate'
+    sigmaX = 5
+    pre_kernel_size = 5
+    post_kernel_size = 5
+
+    main(threshold=threshold, combined=combined, normalize=normalize,
+         sigmaX=sigmaX, pre_kernel_size=pre_kernel_size, post_kernel_size=post_kernel_size)
