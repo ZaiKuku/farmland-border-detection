@@ -48,4 +48,8 @@ from database import PGLandEngine
 with PGLandEngine.connect() as conn:
     gdf = gpd.GeoDataFrame.from_postgis(sql=sql_query, con=conn, geom_col='difference_geom')
 
+# output to shapely object
+gdf.geometry.iloc[0]
+
+# output to .geojson
 gdf.to_file('./query_result.geojson')
