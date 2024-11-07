@@ -19,6 +19,8 @@ pandas = "^2.2.3"
 geopandas = "^1.0.1"
 numpy = "<2"
 scikit-learn = "^1.5.2"
+psycopg2 = "^2.9.10"
+psycopg2-binary = "^2.9.10"
 
 
 [build-system]
