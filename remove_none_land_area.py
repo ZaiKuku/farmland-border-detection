@@ -10,6 +10,9 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
 
+from utils import fetch_osm_landuse_data
+
+
 '''
 gis_osm_{name}_a_free_1
     buildings
@@ -52,19 +55,6 @@ def filter_polygons(polygons, none_land_area_polygons):
         "./intersected_polygons.geojson", driver='GeoJSON')
 
 
-def splitting_polygons(polygons, split_lines):
-    # splitting polygons
-    result = []
-    for idx, polygon in polygons.iterrows():
-        split_polygon = split(polygon.geometry, split_lines.geometry[0])
-        for p in list(split_polygon.geoms):
-            result.append(p)
-
-    return gpd.GeoDataFrame(geometry=result, crs=polygons.crs)
-
-    # return gpd.GeoDataFrame(geometry=split_polygons, crs=polygons.crs)
-
-
 def main(tif_num):
     polygons_path = f"./geojson/preds/{
         tif_num}_threshold_12_combined_True_4326.geojson"
@@ -78,6 +68,9 @@ def main(tif_num):
 
     none_land_area_polygons = gpd.read_file(
         f"../data/land_use_shp/gis_osm_landuse_a_free_1.shp")
+
+    # none_land_area_polygons = fetch_osm_landuse_data(engine, 'gis_osm_landuse_a_free_1',
+    #                                                  polygon=Polygon(bounds.to_dict('records')[0]))
 
     none_land_area_polygons = none_land_area_polygons[none_land_area_polygons['fclass'].isin(
         land_use_list)]

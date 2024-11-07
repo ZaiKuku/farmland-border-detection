@@ -2,7 +2,7 @@ import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from borderdetection.loss import dice_loss, MAE, zero_one_loss, fom
+
 from borderdetection.process_method import apply_gaussian_blur, generate_superpixels, crop_and_magnify
 
 params = {
@@ -100,7 +100,7 @@ def translate(image, target_brightness=30):
     return normalized_image
 
 
-def detect(normalize='rescale', sigmaX=5, pre_kernel_size=(3, 3), post_kernel_size=(3, 3)):
+def detect(normalize: str = 'rescale', sigmaX: int = 5, pre_kernel_size: tuple = (3, 3), post_kernel_size: tuple = (3, 3)) -> None:
     # 設置路徑
     images = os.listdir("../data/lyon_2m")
 
@@ -139,6 +139,9 @@ def detect(normalize='rescale', sigmaX=5, pre_kernel_size=(3, 3), post_kernel_si
         #     os.makedirs("./pred_gray/preds")
 
         # save the result as npy
+        if not os.path.exists(f"./pred_gray/preds"):
+            os.makedirs(f"./pred_gray/preds")
+
         np.save(
             f"./pred_gray/preds/{os.path.basename(image_path).split('.')[0]}.npy", postprocessed_image)
         cv2.imwrite(
