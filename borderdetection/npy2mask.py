@@ -7,7 +7,7 @@ file_num = 37259
 ans = False
 
 
-def npy2mask(file_num, ans, threshold):
+def npy2mask(file_num: int, ans: bool, threshold: int) -> None:
     folder = "answers" if ans else "preds"
     # 匯入邊緣檢測結果
     gray_np_array = np.load(

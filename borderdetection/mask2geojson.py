@@ -138,7 +138,7 @@ def find_concave_hull(polygons, distance):
         polygons.remove(polygon)
 
 
-def mask2geojson(path, thres, combined, rmv_overlap, ans, file_num):
+def mask2geojson(path: str, thres: int, combined: bool, rmv_overlap: bool, ans: bool, file_num: str) -> None:
     mode = "combined" if combined else "filtered"
     folder = "answers" if ans else "preds"
     # 讀取 raster 文件
