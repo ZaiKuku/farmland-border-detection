@@ -9,8 +9,9 @@ import geopandas as gpd
 
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
-from utils import fetch_osm_landuse_data
+from utils import fetch_osm_landuse_data, PathHandler
 from shapely.ops import split
 
 import configparser
@@ -27,39 +28,9 @@ sigmaX = config.getint('PARAMETERS', 'sigmaX')
 pre_kernel_size = config.getint('PARAMETERS', 'pre_kernel_size')
 post_kernel_size = config.getint('PARAMETERS', 'post_kernel_size')
 img_path = config.get('PARAMETERS', 'img_path')
+query_result = config.get('PARAMETERS', 'query_result_path')
+line_query_result = config.get('PARAMETERS', 'line_query_result_path')
 
-
-'''
-gis_osm_{name}_a_free_1
-    buildings
-    landuse
-    natural
-    traffic
-    transport
-gis_osm_{name}_free_1
-    waterways
-    railways
-    roads
-1. 找出tif內的polygons, Lines
-
-
-2. 把非農田區去除 (去除後的坑坑巴巴怎麼處理?)
-3. 用roads分割polygons
-'''
-
-# 改成 fetch data
-
-# 　把跟辨識結果tif的polygons做交集
-
-
-# def polygons_in_tif(bounds: pd.DataFrame, polygons: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-#     print(bounds)
-#     # 改成用DB
-#     polygons = polygons.cx[bounds.minx.min():bounds.maxx.max(),
-#                            bounds.miny.min():bounds.maxy.max()]
-#     # polygons.to_file(
-#     #     "./polygons_in_tif.geojson", driver='GeoJSON')
-#     return polygons
 
 # 用道路、河川、鐵路分割polygon
 def polygon_splitter(polygons, lines):
@@ -84,22 +55,31 @@ def filter_polygons(polygons, none_land_area_polygons):
     return intersected_polygons
 
 
-def remove_none_land_area(geo_path):
-    polygons_path = f"./geojson/preds/{geo_path}.geojson"
+def remove_none_land_area(geo_num, path_handler: PathHandler):
+    geo_path = path_handler.get_geojsons_path(
+        removed=False, combined=False, file_num=geo_num)
+    polygons_path = geo_path
     polygons = gpd.read_file(polygons_path)
 
-    land_area_polygons = gpd.read_file(
-        f"./query_result.geojson")
+    land_area_polygons = gpd.read_file(query_result)
 
     polygons = filter_polygons(polygons, land_area_polygons)
 
     # 用道路、河川、鐵路分割polygon
-    lines = gpd.read_file(
-        f"./line_query_result.geojson")
+    lines = gpd.read_file(line_query_result)
     polygons = polygon_splitter(polygons, lines)
 
+    store_folder = path_handler.get_geojsons_folder(
+        removed=True, combined=False)
+
+    if not os.path.exists(store_folder):
+        os.makedirs(store_folder)
+
+    store_path = path_handler.get_geojsons_path(
+        removed=True, combined=False, file_num=geo_num)
+
     polygons.to_file(
-        f"./geojson/preds/{geo_path}.geojson", driver='GeoJSON')
+        store_path, driver='GeoJSON')
 
 
 if __name__ == '__main__':

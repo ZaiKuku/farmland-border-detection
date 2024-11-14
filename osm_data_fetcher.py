@@ -13,7 +13,6 @@ LINE_CLASSES = ['railways', 'roads', 'waterways']
 
 
 def fetch_osm_landuse_data(bounds, crs):
-    print(bounds)
     sql_query = f'''
         WITH excluded_classes AS (
             -- Defines the set of general classes in the OSM data to exclude
