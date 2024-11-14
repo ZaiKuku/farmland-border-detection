@@ -100,9 +100,9 @@ def translate(image, target_brightness=30):
     return normalized_image
 
 
-def detect(normalize: str = 'rescale', sigmaX: int = 5, pre_kernel_size: tuple = (3, 3), post_kernel_size: tuple = (3, 3)) -> None:
+def detect(normalize: str = 'rescale', sigmaX: int = 5, pre_kernel_size: tuple = (3, 3), post_kernel_size: tuple = (3, 3), img_path: str = "../data/west_pasaman/satellite_image") -> None:
     # 設置路徑
-    images = os.listdir("../data/lyon_2m")
+    images = os.listdir(img_path)
 
     losses = []
     # start to preprocess images
@@ -110,7 +110,7 @@ def detect(normalize: str = 'rescale', sigmaX: int = 5, pre_kernel_size: tuple =
         if not image.endswith(".tif") or image.endswith("_ans.tif"):
             continue
 
-        image_path = os.path.join("../data/lyon_2m", image)
+        image_path = os.path.join(img_path, image)
         image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 
         if image is None:
@@ -139,6 +139,7 @@ def detect(normalize: str = 'rescale', sigmaX: int = 5, pre_kernel_size: tuple =
         #     os.makedirs("./pred_gray/preds")
 
         # save the result as npy
+
         if not os.path.exists(f"./pred_gray/preds"):
             os.makedirs(f"./pred_gray/preds")
 

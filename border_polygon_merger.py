@@ -10,16 +10,7 @@ from shapely.geometry import LineString
 from shapely.ops import unary_union
 import geopandas as gpd
 
-# 指定 GeoTIFF 檔案路徑
-tif_path = '../data/lyon_2m/1310.tif'
-tif2_path = '../data/lyon_2m/1311.tif'
-
-
-def get_right_and_bottom_tif(tif_num):
-
-    # dict ={tif_num:{right: right_tif_num, bottom: bottom_tif_num}}
-    # return f'../data/lyon_2m/{right_tif_num}.tif', f'../data/lyon_2m/{bottom_tif_num}.tif'
-    return f'../data/lyon_2m/{tif_num}.tif', f'../data/lyon_2m/{tif_num+1}.tif'
+from utils import find_intersect_tifs
 
 
 def get_bounds(tif_path):
@@ -52,7 +43,7 @@ def filter_polygons_on_edge(polygons, edge):
         shared_edge = poly.geometry.intersects(edge)
         if isinstance(shared_edge, (LineString, MultiLineString)):
             filtered.append(poly)
-    return gpd.GeoDataFrame(filtered, crs=polygons.crs)
+    return gpd.GeoDataFrame(geometry=filtered, crs=polygons.crs)
 
 
 def merge_polygons(polygons1, polygons2):
@@ -70,33 +61,26 @@ def merge_polygons(polygons1, polygons2):
     return merged
 
 
-def merge_polygons_on_edge(geo_tif_num):
-    tif_path = f'../data/lyon_2m/{geo_tif_num}.tif'
-
-    tif_right_path, tif_bottom_path = get_right_and_bottom_tif(geo_tif_num)
-
-    edges = get_bounds(tif_path)
-    east_line = edges[edges.side == 'East'].geometry.values[0]
-    south_line = edges[edges.side == 'South'].geometry.values[0]
-
+def merge_polygons_on_edge(geo_tif_num, img_path, data_path, threshold=12, neighbor_tifs=None):
+    geo_tif_num = geo_tif_num.split("_")[0]
     polygons = gpd.read_file(
-        f'./geojson/preds/{geo_tif_num}_threshold_26_filtered_True_3857.geojson')
+        f'./geojson/preds/{geo_tif_num}_threshold_{threshold}_combined_True_3857.geojson')
+    edges = get_bounds(f'{img_path}/{geo_tif_num}.tif')
+    print(edges)
+    pos = 'right'
+    for pos in ['right', 'bottom']:
+        tif = neighbor_tifs[geo_tif_num].get(pos)
+        print(tif)
+        polygons_path = f'{
+            data_path}/{tif}_threshold_{threshold}_combined_True_3857.geojson'
+        direction = 'East' if pos == 'right' else 'South'
+        edge = edges[edges.side == direction].geometry.values[0]
+        polygons_pos = gpd.read_file(polygons_path)
+        polygons_pos = filter_polygons_on_edge(polygons_pos, edge)
+        polygons = merge_polygons(polygons, polygons_pos)
 
-    polygons_right = gpd.read_file(tif_right_path)
-    polygons_bottom = gpd.read_file(tif_bottom_path)
-
-    polygons_east = filter_polygons_on_edge(polygons, east_line)
-    polygons_south = filter_polygons_on_edge(polygons, south_line)
-
-    polygons_right = filter_polygons_on_edge(polygons_right, east_line)
-    polygons_bottom = filter_polygons_on_edge(polygons_bottom, south_line)
-
-    merged = merge_polygons(polygons_east, polygons_right)
-    merged.concat(merge_polygons(polygons_south, polygons_bottom))
-
-    merged.to_file(
-        f"test.geojson",
-        driver='GeoJSON')
+    polygons.to_file(
+        f"./geojson/preds/{geo_tif_num}_threshold_{threshold}_combined_True_3857.geojson", driver='GeoJSON')
 
 
 if __name__ == '__main__':

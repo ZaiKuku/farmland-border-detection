@@ -5,6 +5,7 @@ import pandas as pd
 from shapely.geometry import shape, Polygon
 from shapely import concave_hull, union_all
 import numpy as np
+import os
 
 thres = 20
 file_num = "tile_0"
@@ -185,6 +186,11 @@ def mask2geojson(path: str, thres: int, combined: bool, rmv_overlap: bool, ans: 
             except:
                 print("concave hull failed")
                 continue
+
+    if os.path.exists(f"./geojson/pred"):
+        os.system(f"rm -r ./geojson/pred")
+
+    os.makedirs('./geojson/preds', exist_ok=True)
 
     # 合併結果
     if len(th_4_disagg_sf_list) > 0:
