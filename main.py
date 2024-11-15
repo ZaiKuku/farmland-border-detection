@@ -9,9 +9,9 @@ from borderdetection.mask2geojson import mask2geojson
 from borderdetection.npy2mask import npy2mask
 from borderdetection.geojson2tif import geojson2tif
 from borderdetection.loss import calculate_metrics
-from remove_none_land_area import remove_none_land_area
-from osm_data_fetcher import fetch_osm_landuse_data
-from border_polygon_merger import merge_polygons_on_edge
+from borderdetection.remove_none_land_area import remove_none_land_area
+from borderdetection.osm_data_fetcher import fetch_osm_landuse_data, fetch_osm_landuse_line_data
+from borderdetection.border_polygon_merger import merge_polygons_on_edge
 from utils import find_intersect_tifs, PathHandler
 
 
@@ -72,6 +72,7 @@ def main(threshold=12, combined=True, normalize='rescale', sigmaX=5, pre_kernel_
 
     # 提取 OSM 地區用途資料
     fetch_osm_landuse_data(max_bound, crs)
+    fetch_osm_landuse_line_data(max_bound, crs)
 
     # 執行邊界檢測
     detect(normalize=normalize, sigmaX=sigmaX, pre_kernel_size=(pre_kernel_size, pre_kernel_size),
@@ -80,6 +81,9 @@ def main(threshold=12, combined=True, normalize='rescale', sigmaX=5, pre_kernel_
 
     # 後處理步驟：將檢測到的灰度影像轉為 GeoJSON 格式
     pred_gray_nps_path = path_handler.get_pred_gray_nps_folder()
+    if not os.path.exists(pred_gray_nps_path):
+        os.makedirs(pred_gray_nps_path)
+
     pred_gray_nps = os.listdir(pred_gray_nps_path)
     geo_folder = path_handler.get_geojsons_folder(
         removed=False, combined=False)

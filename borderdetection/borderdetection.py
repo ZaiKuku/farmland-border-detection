@@ -103,10 +103,10 @@ def detect(normalize='rescale', sigmaX=5, pre_kernel_size=(3, 3), post_kernel_si
 
 if __name__ == "__main__":
     params = {
-        'sigmaX': 5,
+        'normalize': 'rescale',
         'pre_kernel_size': (3, 3),
         'post_kernel_size': (3, 3),
-        'canny_threshold': (10, 200),
+        'img_path': "../../data/demo",
     }
     detect(**params)
     print("Image processing completed.")
