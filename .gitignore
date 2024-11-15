@@ -1,6 +1,9 @@
 *.geojson
 *.tif
 *.npy
-*.png
+/pred_gray
+/geojsons
+/gray_mask
+/demo
 __pycache__
 *.png.aux.xml
